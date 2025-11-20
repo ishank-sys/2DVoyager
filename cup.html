@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Status Visualization - CUP</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #f5f5f5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .menu-bar {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(8px);
+      padding: 12px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .menu-bar ul {
+      list-style: none;
+      display: flex;
+      gap: 24px;
+    }
+    .menu-bar a {
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #333;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding: 8px 16px;
+      border-radius: 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .menu-bar a:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin: 30px 0;
+      font-size: 2.25rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeIn 0.8s ease-in;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 12px;
+      position: relative;
+      text-align: center;
+    }
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      transform: translateX(-50%);
+    }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 90%;
+      max-width: 1200px;
+      margin-bottom: 20px;
+    }
+    .title-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .home-button {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 50%;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .home-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .home-button svg {
+      width: 24px;
+      height: 24px;
+    }
+    .home-button path {
+      stroke: url(#home-gradient);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .legend {
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    .legend div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .legend-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+    .legend-box.completed {
+      background: #28a745;
+    }
+    .legend-box.blue {
+      background: #40c4ff;
+    }
+    .legend span {
+      color: #333;
+      font-size: 0.85rem;
+    }
+    .main-container {
+      display: flex;
+      width: 90%;
+      max-width: 1800px;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+    .slider-container {
+      width: 1200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .slider-current-date {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #28a745;
+      background: rgba(40, 167, 69, 0.1);
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin: 12px 0;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+      border: 1px solid #28a745;
+      transition: transform 0.2s ease;
+    }
+    .slider-current-date:hover {
+      transform: scale(1.02);
+    }
+    .slider-prompt {
+      font-size: 0.9rem;
+      color: #333;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .slider {
+      width: 100%;
+      height: 540px;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .slide {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .slide.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .slider-bar-wrapper {
+      margin: 16px 0;
+      width: 100%;
+    }
+    .slider-bar {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      border-radius: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      gap: 10px;
+      transition: box-shadow 0.3s ease;
+    }
+    .slider-bar:hover {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .prev, .next, .play {
+      background: transparent;
+      border: none;
+      color: #007bff;
+      font-size: 20px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .prev:hover, .next:hover, .play:hover {
+      transform: scale(1.1);
+    }
+    .slider-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: repeating-linear-gradient(
+        to right,
+        #007bff 0px,
+        #007bff 1px,
+        transparent 1px,
+        transparent calc(100% / 111)
+      );
+      border-radius: 3px;
+    }
+    .slider-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ffaa;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+      transition: box-shadow 0.2s ease;
+    }
+    .slider-range::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    }
+    .slider-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00ffaa;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+      transition: box-shadow 0.2s ease;
+    }
+    .slider-range::-moz-range-thumb:hover {
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    }
+    .slider-ticks {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #333;
+      margin-top: 8px;
+    }
+    .slider-ticks span {
+      text-align: center;
+      transition: color 0.2s ease;
+      cursor: pointer;
+    }
+    .slider-ticks span:hover {
+      color: #007bff;
+    }
+    .status-text-box {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 12px;
+      width: 100%;
+      margin-top: 12px;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    .status-text-box p {
+      font-size: 0.85rem;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .status-text-box span {
+      color: #00ffaa;
+      font-weight: 500;
+    }
+    .table-container {
+      flex: 1;
+      max-width: 600px;
+      margin: 8px 0;
+      animation: slideInRight 0.8s ease-in;
+    }
+    .instruction-text {
+      font-size: 1.2rem;
+      color: rgba(0, 0, 0, 0.8);
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 0.8rem;
+      color: #333;
+      border-bottom: 1px solid rgba(0, 123, 255, 0.15);
+    }
+    th {
+      background: rgba(0, 123, 255, 0.08);
+      font-weight: 600;
+      color: #333;
+    }
+    tr {
+      transition: background 0.2s ease;
+    }
+    tr:nth-child(even) {
+      background: rgba(0, 0, 0, 0.03);
+    }
+    tr:hover {
+      background: rgba(0, 123, 255, 0.12);
+    }
+    tr.highlighted {
+      background: rgba(0, 123, 255, 0.25);
+    }
+    td.completed {
+      background: #28a745;
+      color: #ffffff;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    td.erection-completed {
+      background: #40c4ff;
+      color: #ffffff;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    td.fabrication-clickable, td.erection-clickable {
+      cursor: pointer;
+    }
+    td.fabrication-clickable:hover, td.erection-clickable:hover {
+      background: rgba(0, 123, 255, 0.2);
+    }
+    .search-bar {
+      margin: 24px 0;
+      width: 90%;
+      max-width: 1200px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 24px;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      transition: box-shadow 0.2s ease;
+    }
+    .search-bar input:focus {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      outline: none;
+    }
+    .search-bar input::placeholder {
+      color: #78909c;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(40px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @media (max-width: 768px) {
+      .menu-bar ul {
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .menu-bar a {
+        font-size: 0.85rem;
+        padding: 6px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="menu-bar">
+    <ul>
+      <li><a href="wrc.html">WRC</a></li>
+      <li><a href="lorry.html">LORRY</a></li>
+      <li><a href="waste.html">Waste Management</a></li>
+      <li><a href="bsgs.html">BSGS</a></li>
+    </ul>
+  </nav>
+  <div class="header-container">
+    <div class="title-container">
+      <h1>Project Status Visualization</h1>
+      <a href="home.html" class="home-button">
+        <svg viewBox="0 0 24 24">
+          <defs>
+            <linearGradient id="home-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#007bff;" />
+              <stop offset="100%" style="stop-color:#28a745;" />
+            </linearGradient>
+          </defs>
+          <path d="M3 12L12 3L21 12V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V12Z" />
+          <path d="M9 22V15H15V22" />
+        </svg>
+      </a>
+    </div>
+    <div class="legend">
+      <div>
+        <div class="legend-box completed"></div>
+        <span>Completed</span>
+      </div>
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="slider-container">
+      <h2>CUP</h2>
+      <div class="slider">
+        <img src="CUP/ (1).png" class="slide active" alt="Image 1">
+        <img src="CUP/ (2).png" class="slide" alt="Image 2">
+        <img src="CUP/ (3).png" class="slide" alt="Image 3">
+        <img src="CUP/ (4).png" class="slide" alt="Image 4">
+        <img src="CUP/ (5).png" class="slide" alt="Image 5">
+        <img src="CUP/ (6).png" class="slide" alt="Image 6">
+        <img src="CUP/ (7).png" class="slide" alt="Image 7">
+        <img src="CUP/ (8).png" class="slide" alt="Image 8">
+        <img src="CUP/ (9).png" class="slide" alt="Image 9">
+        <img src="CUP/ (10).png" class="slide" alt="Image 10">
+        <img src="CUP/ (11).png" class="slide" alt="Image 11">
+        <img src="CUP/ (12).png" class="slide" alt="Image 12">
+        <img src="CUP/ (13).png" class="slide" alt="Image 13">
+        <img src="CUP/ (14).png" class="slide" alt="Image 14">
+        <img src="CUP/ (15).png" class="slide" alt="Image 15">
+        <img src="CUP/ (16).png" class="slide" alt="Image 16">
+        <img src="CUP/ (17).png" class="slide" alt="Image 17">
+        <img src="CUP/ (18).png" class="slide" alt="Image 18">
+        <img src="CUP/ (19).png" class="slide" alt="Image 19">
+        <img src="CUP/ (20).png" class="slide" alt="Image 20">
+        <img src="CUP/ (21).png" class="slide" alt="Image 21">
+        <img src="CUP/ (22).png" class="slide" alt="Image 22">
+        <img src="CUP/ (23).png" class="slide" alt="Image 23">
+        <img src="CUP/ (24).png" class="slide" alt="Image 24">
+        <img src="CUP/ (25).png" class="slide" alt="Image 25">
+        <img src="CUP/ (26).png" class="slide" alt="Image 26">
+        <img src="CUP/ (27).png" class="slide" alt="Image 27">
+        <img src="CUP/ (28).png" class="slide" alt="Image 28">
+        <img src="CUP/ (29).png" class="slide" alt="Image 29">
+        <img src="CUP/ (30).png" class="slide" alt="Image 30">
+        <img src="CUP/ (31).png" class="slide" alt="Image 31">
+        <img src="CUP/ (32).png" class="slide" alt="Image 32">
+        <img src="CUP/ (33).png" class="slide" alt="Image 33">
+        <img src="CUP/ (34).png" class="slide" alt="Image 34">
+        <img src="CUP/ (35).png" class="slide" alt="Image 35">
+        <img src="CUP/ (36).png" class="slide" alt="Image 36">
+        <img src="CUP/ (37).png" class="slide" alt="Image 37">
+        <img src="CUP/ (38).png" class="slide" alt="Image 38">
+        <img src="CUP/ (39).png" class="slide" alt="Image 39">
+        <img src="CUP/ (40).png" class="slide" alt="Image 40">
+        <img src="CUP/ (41).png" class="slide" alt="Image 41">
+        <img src="CUP/ (42).png" class="slide" alt="Image 42">
+        <img src="CUP/ (43).png" class="slide" alt="Image 43">
+        <img src="CUP/ (44).png" class="slide" alt="Image 44">
+        <img src="CUP/ (45).png" class="slide" alt="Image 45">
+        <img src="CUP/ (46).png" class="slide" alt="Image 46">
+        <img src="CUP/ (47).png" class="slide" alt="Image 47">
+        <img src="CUP/ (48).png" class="slide" alt="Image 48">
+        <img src="CUP/ (49).png" class="slide" alt="Image 49">
+        <img src="CUP/ (50).png" class="slide" alt="Image 50">
+        <img src="CUP/ (51).png" class="slide" alt="Image 51">
+        <img src="CUP/ (52).png" class="slide" alt="Image 52">
+        <img src="CUP/ (53).png" class="slide" alt="Image 53">
+        <img src="CUP/ (54).png" class="slide" alt="Image 54">
+        <img src="CUP/ (55).png" class="slide" alt="Image 55">
+        <img src="CUP/ (56).png" class="slide" alt="Image 56">
+        <img src="CUP/ (57).png" class="slide" alt="Image 57">
+        <img src="CUP/ (58).png" class="slide" alt="Image 58">
+        <img src="CUP/ (59).png" class="slide" alt="Image 59">
+        <img src="CUP/ (60).png" class="slide" alt="Image 60">
+        <img src="CUP/ (61).png" class="slide" alt="Image 61">
+        <img src="CUP/ (62).png" class="slide" alt="Image 62">
+        <img src="CUP/ (63).png" class="slide" alt="Image 63">
+        <img src="CUP/ (64).png" class="slide" alt="Image 64">
+        <img src="CUP/ (65).png" class="slide" alt="Image 65">
+        <img src="CUP/ (66).png" class="slide" alt="Image 66">
+        <img src="CUP/ (67).png" class="slide" alt="Image 67">
+        <img src="CUP/ (68).png" class="slide" alt="Image 68">
+        <img src="CUP/ (69).png" class="slide" alt="Image 69">
+        <img src="CUP/ (70).png" class="slide" alt="Image 70">
+        <img src="CUP/ (71).png" class="slide" alt="Image 71">
+        <img src="CUP/ (72).png" class="slide" alt="Image 72">
+        <img src="CUP/ (73).png" class="slide" alt="Image 73">
+        <img src="CUP/ (74).png" class="slide" alt="Image 74">
+        <img src="CUP/ (75).png" class="slide" alt="Image 75">
+        <img src="CUP/ (76).png" class="slide" alt="Image 76">
+        <img src="CUP/ (77).png" class="slide" alt="Image 77">
+        <img src="CUP/ (78).png" class="slide" alt="Image 78">
+        <img src="CUP/ (79).png" class="slide" alt="Image 79">
+        <img src="CUP/ (80).png" class="slide" alt="Image 80">
+        <img src="CUP/ (81).png" class="slide" alt="Image 81">
+        <img src="CUP/ (82).png" class="slide" alt="Image 82">
+        <img src="CUP/ (83).png" class="slide" alt="Image 83">
+        <img src="CUP/ (84).png" class="slide" alt="Image 84">
+        <img src="CUP/ (85).png" class="slide" alt="Image 85">
+        <img src="CUP/ (86).png" class="slide" alt="Image 86">
+        <img src="CUP/ (87).png" class="slide" alt="Image 87">
+        <img src="CUP/ (88).png" class="slide" alt="Image 88">
+        <img src="CUP/ (89).png" class="slide" alt="Image 89">
+        <img src="CUP/ (90).png" class="slide" alt="Image 90">
+        <img src="CUP/ (91).png" class="slide" alt="Image 91">
+        <img src="CUP/ (92).png" class="slide" alt="Image 92">
+        <img src="CUP/ (93).png" class="slide" alt="Image 93">
+        <img src="CUP/ (94).png" class="slide" alt="Image 94">
+        <img src="CUP/ (95).png" class="slide" alt="Image 95">
+        <img src="CUP/ (96).png" class="slide" alt="Image 96">
+        <img src="CUP/ (97).png" class="slide" alt="Image 97">
+        <img src="CUP/ (98).png" class="slide" alt="Image 98">
+        <img src="CUP/ (99).png" class="slide" alt="Image 99">
+        <img src="CUP/ (100).png" class="slide" alt="Image 100">
+        <img src="CUP/ (101).png" class="slide" alt="Image 101">
+        <img src="CUP/ (102).png" class="slide" alt="Image 102">
+        <img src="CUP/ (103).png" class="slide" alt="Image 103">
+        <img src="CUP/ (104).png" class="slide" alt="Image 104">
+        <img src="CUP/ (105).png" class="slide" alt="Image 105">
+        <img src="CUP/ (106).png" class="slide" alt="Image 106">
+        <img src="CUP/ (107).png" class="slide" alt="Image 107">
+        <img src="CUP/ (108).png" class="slide" alt="Image 108">
+        <img src="CUP/ (109).png" class="slide" alt="Image 109">
+        <img src="CUP/ (110).png" class="slide" alt="Image 110">
+        <img src="CUP/ (111).png" class="slide" alt="Image 111">
+      </div>
+      <div class="slider-bar-wrapper">
+        <div class="slider-bar">
+          <button class="play">▶</button>
+          <button class="prev">❮</button>
+          <input type="range" min="0" max="110" value="0" class="slider-range">
+          <button class="next">❯</button>
+        </div>
+      </div>
+      <div class="slider-ticks">
+        <span data-date="8/9/2026">8/9/2026</span>
+        <span data-date="9/6/2026">9/6/2026</span>
+        <span data-date="9/13/2026">9/13/2026</span>
+        <span data-date="9/20/2026">9/20/2026</span>
+        <span data-date="9/27/2026">9/27/2026</span>
+        <span data-date="10/4/2026">10/4/2026</span>
+        <span data-date="10/11/2026">10/11/2026</span>
+        <span data-date="10/18/2026">10/18/2026</span>
+        <span data-date="10/25/2026">10/25/2026</span>
+        <span data-date="11/1/2026">11/1/2026</span>
+        <span data-date="11/8/2026">11/8/2026</span>
+        <span data-date="11/15/2026">11/15/2026</span>
+      </div>
+      <div class="slider-current-date">Date: <span id="slider-current-date">8/9/2026</span></div>
+      <p class="slider-prompt">Slide left to see progress</p>
+      <div class="status-text-box">
+        <p>Fabrication: <span id="slide-fabrication">Anchor Bolt Fabrication Complete</span></p>
+        <p>Erection: <span id="slide-erection">Erection Yet to Start</span></p>
+      </div>
+    </div>
+    <div class="table-container">
+      <p class="instruction-text">Click the date to see project status.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>S.No.</th>
+            <th>Member</th>
+            <th>Fabrication Completion</th>
+            <th>Erection Completion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Anchor Bolt</td>
+            <td class="fabrication-clickable" data-slide="21">08/09/2026</td>
+            <td class="erection-clickable" data-slide="71">12/27/2026</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Sequence 101</td>
+            <td class="fabrication-clickable" data-slide="23">09/06/2026</td>
+            <td class="erection-clickable" data-slide="73">01/03/2027</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Sequence 102</td>
+            <td class="fabrication-clickable" data-slide="25">09/13/2026</td>
+            <td class="erection-clickable" data-slide="75">01/10/2027</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Sequence 103</td>
+            <td class="fabrication-clickable" data-slide="27">09/20/2026</td>
+            <td class="erection-clickable" data-slide="77">01/17/2027</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Sequence 104</td>
+            <td class="fabrication-clickable" data-slide="28">09/27/2026</td>
+            <td class="erection-clickable" data-slide="79">01/24/2027</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Sequence 105</td>
+            <td class="fabrication-clickable" data-slide="30">10/04/2026</td>
+            <td class="erection-clickable" data-slide="81">01/31/2027</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Sequence 106</td>
+            <td class="fabrication-clickable" data-slide="32">10/11/2026</td>
+            <td class="erection-clickable" data-slide="83">02/07/2027</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Sequence 107</td>
+            <td class="fabrication-clickable" data-slide="36">10/18/2026</td>
+            <td class="erection-clickable" data-slide="84">02/14/2027</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Sequence 108</td>
+            <td class="fabrication-clickable" data-slide="39">10/25/2026</td>
+            <td class="erection-clickable" data-slide="86">02/21/2027</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Sequence 201</td>
+            <td class="fabrication-clickable" data-slide="42">11/01/2026</td>
+            <td class="erection-clickable" data-slide="88">02/28/2027</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>Sequence 202</td>
+            <td class="fabrication-clickable" data-slide="45">11/08/2026</td>
+            <td class="erection-clickable" data-slide="90">03/07/2027</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Sequence 203</td>
+            <td class="fabrication-clickable" data-slide="48">11/15/2026</td>
+            <td class="erection-clickable" data-slide="92">03/14/2027</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>Sequence 204</td>
+            <td class="fabrication-clickable" data-slide="50">11/22/2026</td>
+            <td class="erection-clickable" data-slide="94">03/21/2027</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>Sequence 205</td>
+            <td class="fabrication-clickable" data-slide="52">11/29/2026</td>
+            <td class="erection-clickable" data-slide="96">03/28/2027</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>Sequence 206</td>
+            <td class="fabrication-clickable" data-slide="53">12/06/2026</td>
+            <td class="erection-clickable" data-slide="98">04/04/2027</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>Sequence 207</td>
+            <td class="fabrication-clickable" data-slide="46">12/13/2026</td>
+            <td class="erection-clickable" data-slide="105">04/11/2027</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>Sequence 208</td>
+            <td class="fabrication-clickable" data-slide="66">12/20/2026</td>
+            <td class="erection-clickable" data-slide="110">04/18/2027</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="search-bar">
+    <input type="text" placeholder="Search projects...">
+  </div>
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const range = document.querySelector('.slider-range');
+    const prevBtn = document.querySelector('.prev');
+    const nextBtn = document.querySelector('.next');
+    const playBtn = document.querySelector('.play');
+    const tableRows = document.querySelectorAll('tbody tr');
+    const slideFabrication = document.querySelector('#slide-fabrication');
+    const slideErection = document.querySelector('#slide-erection');
+    const sliderCurrentDate = document.querySelector('#slider-current-date');
+    const tickDates = document.querySelectorAll('.slider-ticks span');
+    let currentSlide = 0;
+    let playInterval = null;
+
+    const slideData = [
+  { date: '8/9/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/10/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/11/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/12/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/13/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/14/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/15/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/16/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/17/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/18/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/19/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/20/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/21/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/22/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/23/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/24/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/25/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/26/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/27/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/28/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/29/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/30/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '8/31/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/1/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/2/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/3/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/4/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/5/2026', fabrication: 'Anchor Bolt Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/6/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/7/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/8/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/9/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/10/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/11/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/12/2026', fabrication: 'Sequence 101 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/13/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/14/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/15/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/16/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/17/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/18/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/19/2026', fabrication: 'Sequence 102 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/20/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/21/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/22/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/23/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/24/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/25/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/26/2026', fabrication: 'Sequence 103 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/27/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/28/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/29/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '9/30/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/1/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/2/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/3/2026', fabrication: 'Sequence 104 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/4/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/5/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/6/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/7/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/8/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/9/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/10/2026', fabrication: 'Sequence 105 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/11/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/12/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/13/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/14/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/15/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/16/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/17/2026', fabrication: 'Sequence 106 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/18/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/19/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/20/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/21/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/22/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/23/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/24/2026', fabrication: 'Sequence 107 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/25/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/26/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/27/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/28/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/29/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/30/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '10/31/2026', fabrication: 'Sequence 108 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/1/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/2/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/3/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/4/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/5/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/6/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/7/2026', fabrication: 'Sequence 201 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/8/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/9/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/10/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/11/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/12/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/13/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/14/2026', fabrication: 'Sequence 202 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/15/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/16/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/17/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/18/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/19/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/20/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/21/2026', fabrication: 'Sequence 203 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/22/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/23/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/24/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/25/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/26/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+  { date: '11/27/2026', fabrication: 'Sequence 204 Fabrication Complete', erection: 'Erection Yet to Start' },
+];
+
+    function showSlide(index, clickedRowIndex = null) {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+      });
+      range.value = index;
+      currentSlide = index;
+
+      tableRows.forEach((row) => {
+        row.classList.remove('highlighted');
+      });
+      if (clickedRowIndex !== null && clickedRowIndex < tableRows.length) {
+        tableRows[clickedRowIndex].classList.add('highlighted');
+      } else {
+        const slideDateObj = new Date(slideData[index].date);
+        let highlightIndex = 0;
+        tableRows.forEach((row, i) => {
+          const fabDateStr = row.cells[2].textContent;
+          const fabDateParts = fabDateStr.split('/');
+          const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
+          if (slideDateObj >= fabDate) {
+            highlightIndex = i;
+          }
+        });
+        tableRows[highlightIndex].classList.add('highlighted');
+      }
+
+      const data = slideData[index];
+      sliderCurrentDate.textContent = data.date;
+      slideFabrication.textContent = data.fabrication;
+      slideErection.textContent = data.erection;
+
+      tableRows.forEach((row) => {
+        row.cells[2].classList.remove('completed');
+        row.cells[3].classList.remove('erection-completed');
+      });
+
+      const slideDateObj = new Date(data.date);
+      tableRows.forEach((row) => {
+        const fabCell = row.cells[2];
+        const erectionCell = row.cells[3];
+        const fabDateStr = fabCell.textContent;
+        const erectionDateStr = erectionCell.textContent;
+
+        const fabDateParts = fabDateStr.split('/');
+        const erectionDateParts = erectionDateStr.split('/');
+        const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
+        const erectionDate = new Date(`${erectionDateParts[0]}/${erectionDateParts[1]}/${erectionDateParts[2]}`);
+
+        if (slideDateObj >= fabDate) {
+          fabCell.classList.add('completed');
+        }
+        if (slideDateObj >= erectionDate) {
+          erectionCell.classList.add('completed');
+        }
+      });
+    }
+
+    function findClosestSlide(targetDateStr) {
+      const [day, month, year] = targetDateStr.split('/');
+      const formattedDate = `${month}/${day}/${year}`;
+      const targetDate = new Date(formattedDate);
+
+      for (let i = 0; i < slideData.length; i++) {
+        const slideDate = new Date(slideData[i].date);
+        if (slideDate >= targetDate) {
+          return i;
+        }
+      }
+      return slideData.length - 1;
+    }
+
+    function togglePlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = '▶';
+      } else {
+        playInterval = setInterval(() => {
+          if (currentSlide < slides.length - 1) {
+            showSlide(currentSlide + 1);
+          } else {
+            clearInterval(playInterval);
+            playInterval = null;
+            playBtn.textContent = '▶';
+          }
+        }, 1000);
+        playBtn.textContent = '❚❚';
+      }
+    }
+
+    function stopPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = '▶';
+      }
+    }
+
+    tableRows.forEach((row, rowIndex) => {
+      const fabCell = row.cells[2];
+      const erectionCell = row.cells[3];
+      
+      fabCell.addEventListener('click', () => {
+        stopPlay();
+        const slideIndex = fabCell.dataset.slide ? parseInt(fabCell.dataset.slide) : findClosestSlide(fabCell.textContent);
+        showSlide(slideIndex, rowIndex);
+      });
+
+      erectionCell.addEventListener('click', () => {
+        stopPlay();
+        const slideIndex = erectionCell.dataset.slide ? parseInt(erectionCell.dataset.slide) : findClosestSlide(erectionCell.textContent);
+        showSlide(slideIndex, rowIndex);
+      });
+    });
+
+    range.addEventListener('input', () => {
+      stopPlay();
+      showSlide(parseInt(range.value));
+    });
+
+    prevBtn.addEventListener('click', () => {
+      stopPlay();
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      stopPlay();
+      if (currentSlide < slides.length - 1) showSlide(currentSlide + 1);
+    });
+
+    playBtn.addEventListener('click', togglePlay);
+
+    tickDates.forEach((tick) => {
+      tick.addEventListener('click', () => {
+        stopPlay();
+        const dateStr = tick.dataset.date;
+        const slideIndex = slideData.findIndex(slide => slide.date === dateStr);
+        if (slideIndex !== -1) {
+          showSlide(slideIndex);
+        }
+      });
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>

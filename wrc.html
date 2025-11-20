@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project Status Visualization - WRC</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #f5f5f5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .menu-bar {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(8px);
+      padding: 12px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .menu-bar ul {
+      list-style: none;
+      display: flex;
+      gap: 24px;
+    }
+    .menu-bar a {
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #333;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding: 8px 16px;
+      border-radius: 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .menu-bar a:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background: rgba(0, 123, 255, 0.1);
+    }
+    h1 {
+      margin: 30px 0;
+      font-size: 2.25rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeIn 0.8s ease-in;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 12px;
+      position: relative;
+      text-align: center;
+    }
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      transform: translateX(-50%);
+    }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 90%;
+      max-width: 1200px;
+      margin-bottom: 20px;
+    }
+    .title-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .home-button {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .home-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .home-button svg {
+      width: 24px;
+      height: 24px;
+    }
+    .home-button path {
+      stroke: url(#home-gradient);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .legend {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    .legend div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .legend-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+    .legend-box.completed {
+      background: #28a745;
+    }
+    .legend-box.blue {
+      background: #40c4ff;
+    }
+    .legend span {
+      color: #666;
+      font-size: 0.85rem;
+    }
+    .main-container {
+      display: flex;
+      width: 90%;
+      max-width: 1800px;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+    .slider-container {
+      width: 1200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .slider-current-date {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #28a745;
+      background: rgba(40, 167, 69, 0.1);
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin: 12px 0;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+      border: 1px solid #28a745;
+      transition: transform 0.2s ease;
+    }
+    .slider-current-date:hover {
+      transform: scale(1.02);
+    }
+    .slider-prompt {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .slider {
+      width: 100%;
+      height: 540px;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .slide {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .slide.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .slider-bar-wrapper {
+      margin: 16px 0;
+      width: 100%;
+    }
+    .slider-bar {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      border-radius: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      gap: 10px;
+      transition: box-shadow 0.3s ease;
+    }
+    .slider-bar:hover {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .prev, .next, .play {
+      background: transparent;
+      border: none;
+      color: #007bff;
+      font-size: 20px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .prev:hover, .next:hover, .play:hover {
+      transform: scale(1.1);
+    }
+    .slider-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: repeating-linear-gradient(
+        to right,
+        #007bff 0px,
+        #007bff 1px,
+        transparent 1px,
+        transparent calc(100% / 39)
+      );
+      border-radius: 3px;
+    }
+    .slider-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ffaa;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+      transition: box-shadow 0.2s ease;
+    }
+    .slider-range::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    }
+    .slider-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00ffaa;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+      transition: box-shadow 0.2s ease;
+    }
+    .slider-range::-moz-range-thumb:hover {
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+    }
+    .slider-ticks {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #333;
+      margin-top: 8px;
+    }
+    .slider-ticks span {
+      text-align: center;
+      transition: color 0.2s ease;
+      cursor: pointer;
+    }
+    .slider-ticks span:hover {
+      color: #007bff;
+    }
+    .status-text-box {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 12px;
+      width: 100%;
+      margin-top: 12px;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    .status-text-box p {
+      font-size: 0.85rem;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .status-text-box span {
+      color: #00ffaa;
+      font-weight: 500;
+    }
+    .table-container {
+      flex: 1;
+      max-width: 600px;
+      margin: 8px 0;
+      animation: slideInRight 0.8s ease-in;
+    }
+    .instruction-text {
+      font-size: 1.2rem;
+      color: rgba(0, 0, 0, 0.8);
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 0.8rem;
+      color: #333;
+      border-bottom: 1px solid rgba(0, 123, 255, 0.15);
+    }
+    th {
+      background: rgba(0, 123, 255, 0.08);
+      font-weight: 600;
+      color: #333;
+    }
+    tr {
+      transition: background 0.2s ease;
+    }
+    tr:nth-child(even) {
+      background: rgba(0, 0, 0, 0.03);
+    }
+    tr:hover {
+      background: rgba(0, 123, 255, 0.12);
+    }
+    tr.highlighted {
+      background: rgba(0, 123, 255, 0.25);
+    }
+    td.completed {
+      background: #28a745;
+      color: #ffffff;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    td.erection-completed {
+      background: #40c4ff;
+      color: #ffffff;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    td.fabrication-clickable, td.erection-clickable {
+      cursor: pointer;
+    }
+    td.fabrication-clickable:hover, td.erection-clickable:hover {
+      background: rgba(0, 123, 255, 0.2);
+    }
+    .search-bar {
+      margin: 24px 0;
+      width: 90%;
+      max-width: 1200px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 24px;
+      border: none;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      transition: box-shadow 0.2s ease;
+    }
+    .search-bar input:focus {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      outline: none;
+    }
+    .search-bar input::placeholder {
+      color: #78909c;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(40px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @media (max-width: 768px) {
+      .menu-bar ul {
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .menu-bar a {
+        font-size: 0.85rem;
+        padding: 6px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="menu-bar">
+    <ul>
+      <li><a href="lorry.html">LORRY</a></li>
+      <li><a href="waste.html">Waste Management</a></li>
+      <li><a href="bsgs.html">BSGS</a></li>
+      <li><a href="cup.html">CUP</a></li>
+    </ul>
+  </nav>
+  <div class="header-container">
+    <div class="title-container">
+      <h1>Project Status Visualization</h1>
+      <a href="home.html" class="home-button">
+        <svg viewBox="0 0 24 24">
+          <defs>
+            <linearGradient id="home-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#00d4ff;" />
+              <stop offset="100%" style="stop-color:#00ffaa;" />
+            </linearGradient>
+          </defs>
+          <path d="M3 12L12 3L21 12V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V12Z" />
+          <path d="M9 22V15H15V22" />
+        </svg>
+      </a>
+    </div>
+    <div class="legend">
+      <div>
+        <div class="legend-box completed"></div>
+        <span>Completed</span>
+      </div>
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="slider-container">
+      <h2>WRC</h2>
+      <div class="slider">
+        <img src="WRC/ (1).png" class="slide active" alt="Image 1">
+        <img src="WRC/ (2).png" class="slide" alt="Image 2">
+        <img src="WRC/ (3).png" class="slide" alt="Image 3">
+        <img src="WRC/ (4).png" class="slide" alt="Image 4">
+        <img src="WRC/ (5).png" class="slide" alt="Image 5">
+        <img src="WRC/ (6).png" class="slide" alt="Image 6">
+        <img src="WRC/ (7).png" class="slide" alt="Image 7">
+        <img src="WRC/ (8).png" class="slide" alt="Image 8">
+        <img src="WRC/ (9).png" class="slide" alt="Image 9">
+        <img src="WRC/ (10).png" class="slide" alt="Image 10">
+        <img src="WRC/ (11).png" class="slide" alt="Image 11">
+        <img src="WRC/ (12).png" class="slide" alt="Image 12">
+        <img src="WRC/ (13).png" class="slide" alt="Image 13">
+        <img src="WRC/ (14).png" class="slide" alt="Image 14">
+        <img src="WRC/ (15).png" class="slide" alt="Image 15">
+        <img src="WRC/ (16).png" class="slide" alt="Image 16">
+        <img src="WRC/ (17).png" class="slide" alt="Image 17">
+        <img src="WRC/ (18).png" class="slide" alt="Image 18">
+        <img src="WRC/ (19).png" class="slide" alt="Image 19">
+        <img src="WRC/ (20).png" class="slide" alt="Image 20">
+        <img src="WRC/ (21).png" class="slide" alt="Image 21">
+        <img src="WRC/ (22).png" class="slide" alt="Image 22">
+        <img src="WRC/ (23).png" class="slide" alt="Image 23">
+        <img src="WRC/ (24).png" class="slide" alt="Image 24">
+        <img src="WRC/ (25).png" class="slide" alt="Image 25">
+        <img src="WRC/ (26).png" class="slide" alt="Image 26">
+        <img src="WRC/ (27).png" class="slide" alt="Image 27">
+        <img src="WRC/ (28).png" class="slide" alt="Image 28">
+        <img src="WRC/ (29).png" class="slide" alt="Image 29">
+        <img src="WRC/ (30).png" class="slide" alt="Image 30">
+        <img src="WRC/ (31).png" class="slide" alt="Image 31">
+        <img src="WRC/ (32).png" class="slide" alt="Image 32">
+        <img src="WRC/ (33).png" class="slide" alt="Image 33">
+        <img src="WRC/ (34).png" class="slide" alt="Image 34">
+        <img src="WRC/ (35).png" class="slide" alt="Image 35">
+        <img src="WRC/ (36).png" class="slide" alt="Image 36">
+        <img src="WRC/ (37).png" class="slide" alt="Image 37">
+        <img src="WRC/ (38).png" class="slide" alt="Image 38">
+        <img src="WRC/ (39).png" class="slide" alt="Image 39">
+        <img src="WRC/ (40).png" class="slide" alt="Image 40">
+        <img src="WRC/ (41).png" class="slide" alt="Image 41">
+        <img src="WRC/ (42).png" class="slide" alt="Image 42">
+        <img src="WRC/ (43).png" class="slide" alt="Image 43">
+        <img src="WRC/ (44).png" class="slide" alt="Image 44">
+        <img src="WRC/ (45).png" class="slide" alt="Image 45">
+        <img src="WRC/ (46).png" class="slide" alt="Image 46">
+        <img src="WRC/ (47).png" class="slide" alt="Image 47">
+        <img src="WRC/ (48).png" class="slide" alt="Image 48">
+        <img src="WRC/ (49).png" class="slide" alt="Image 49">
+        <img src="WRC/ (50).png" class="slide" alt="Image 50">
+        <img src="WRC/ (51).png" class="slide" alt="Image 51">
+        <img src="WRC/ (52).png" class="slide" alt="Image 52">
+        <img src="WRC/ (53).png" class="slide" alt="Image 53">
+        <img src="WRC/ (54).png" class="slide" alt="Image 54">
+        <img src="WRC/ (55).png" class="slide" alt="Image 55">
+        <img src="WRC/ (56).png" class="slide" alt="Image 56">
+        <img src="WRC/ (57).png" class="slide" alt="Image 57">
+        <img src="WRC/ (58).png" class="slide" alt="Image 58">
+        <img src="WRC/ (59).png" class="slide" alt="Image 59">
+        <img src="WRC/ (60).png" class="slide" alt="Image 60">
+        <img src="WRC/ (61).png" class="slide" alt="Image 61">
+        <img src="WRC/ (62).png" class="slide" alt="Image 62">
+        <img src="WRC/ (63).png" class="slide" alt="Image 63">
+        <img src="WRC/ (64).png" class="slide" alt="Image 64">
+        <img src="WRC/ (65).png" class="slide" alt="Image 65">
+        <img src="WRC/ (66).png" class="slide" alt="Image 66">
+        <img src="WRC/ (67).png" class="slide" alt="Image 67">
+        <img src="WRC/ (68).png" class="slide" alt="Image 68">
+        <img src="WRC/ (69).png" class="slide" alt="Image 69">
+        <img src="WRC/ (70).png" class="slide" alt="Image 70">
+        <img src="WRC/ (71).png" class="slide" alt="Image 71">
+        <img src="WRC/ (72).png" class="slide" alt="Image 72">
+        <img src="WRC/ (73).png" class="slide" alt="Image 73">
+        <img src="WRC/ (74).png" class="slide" alt="Image 74">
+        <img src="WRC/ (75).png" class="slide" alt="Image 75">
+        <img src="WRC/ (76).png" class="slide" alt="Image 76">
+        <img src="WRC/ (77).png" class="slide" alt="Image 77">
+        <img src="WRC/ (78).png" class="slide" alt="Image 78">
+        <img src="WRC/ (79).png" class="slide" alt="Image 79">
+        <img src="WRC/ (80).png" class="slide" alt="Image 80">
+        <img src="WRC/ (81).png" class="slide" alt="Image 81">
+        <img src="WRC/ (82).png" class="slide" alt="Image 82">
+        <img src="WRC/ (83).png" class="slide" alt="Image 83">
+        <img src="WRC/ (84).png" class="slide" alt="Image 84">
+        <img src="WRC/ (85).png" class="slide" alt="Image 85">
+        <img src="WRC/ (86).png" class="slide" alt="Image 86">
+        <img src="WRC/ (87).png" class="slide" alt="Image 87">
+        <img src="WRC/ (88).png" class="slide" alt="Image 88">
+        <img src="WRC/ (89).png" class="slide" alt="Image 89">
+        <img src="WRC/ (90).png" class="slide" alt="Image 90">
+        <img src="WRC/ (91).png" class="slide" alt="Image 91">
+        <img src="WRC/ (92).png" class="slide" alt="Image 92">
+        <img src="WRC/ (93).png" class="slide" alt="Image 93">
+        <img src="WRC/ (94).png" class="slide" alt="Image 94">
+        <img src="WRC/ (95).png" class="slide" alt="Image 95">
+        <img src="WRC/ (96).png" class="slide" alt="Image 96">
+        <img src="WRC/ (97).png" class="slide" alt="Image 97">
+        <img src="WRC/ (98).png" class="slide" alt="Image 98">
+        <img src="WRC/ (99).png" class="slide" alt="Image 99">
+        <img src="WRC/ (100).png" class="slide" alt="Image 100">
+        <img src="WRC/ (101).png" class="slide" alt="Image 101">
+        <img src="WRC/ (102).png" class="slide" alt="Image 102">
+        <img src="WRC/ (103).png" class="slide" alt="Image 103">
+        <img src="WRC/ (104).png" class="slide" alt="Image 104">
+        <img src="WRC/ (105).png" class="slide" alt="Image 105">
+        <img src="WRC/ (106).png" class="slide" alt="Image 106">
+        <img src="WRC/ (107).png" class="slide" alt="Image 107">
+        <img src="WRC/ (108).png" class="slide" alt="Image 108">
+        <img src="WRC/ (109).png" class="slide" alt="Image 109">
+        <img src="WRC/ (110).png" class="slide" alt="Image 110">
+        <img src="WRC/ (111).png" class="slide" alt="Image 111">
+        <img src="WRC/ (112).png" class="slide" alt="Image 112">
+        <img src="WRC/ (113).png" class="slide" alt="Image 113">
+        <img src="WRC/ (114).png" class="slide" alt="Image 114">
+      </div>
+      <div class="slider-bar-wrapper">
+        <div class="slider-bar">
+          <button class="play">▶</button>
+          <button class="prev">❮</button>
+          <input type="range" min="0" max="113" value="0" class="slider-range">
+          <button class="next">❯</button>
+        </div>
+      </div>
+      <div class="slider-ticks">
+        <span data-date="03/26/2026">03/26/2026</span>
+        <span data-date="04/06/2026">04/06/2026</span>
+        <span data-date="04/14/2026">04/14/2026</span>
+        <span data-date="04/27/2026">04/27/2026</span>
+        <span data-date="05/10/2026">05/10/2026</span>
+      </div>
+      <div class="slider-current-date">Date: <span id="slider-current-date">3/26/2026</span></div>
+      <p class="slider-prompt">Slide left to see progress</p>
+      <div class="status-text-box">
+        <p>Fabrication: <span id="slide-fabrication">Anchor Bolts 1 Fabrication Complete</span></p>
+        <p>Erection: <span id="slide-erection">Erection Yet to Start</span></p>
+      </div>
+    </div>
+    <div class="table-container">
+      <p class="instruction-text">Click the date to see project status.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>S.No.</th>
+            <th>Member</th>
+            <th>Fabrication Completion</th>
+            <th>Erection Completion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Anchor Bolt</td>
+            <td class="fabrication-clickable" data-slide="4">08/16/2026</td>
+            <td class="erection-clickable" data-slide="70">12/18/2026</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>SEQ-101</td>
+            <td class="fabrication-clickable" data-slide="8">08/26/2026</td>
+            <td class="erection-clickable" data-slide="75">01/10/2027</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>SEQ-102</td>
+            <td class="fabrication-clickable" data-slide="11">09/05/2026</td>
+            <td class="erection-clickable" data-slide="79">01/24/2027</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>SEQ-103</td>
+            <td class="fabrication-clickable" data-slide="12">09/11/2026</td>
+            <td class="erection-clickable" data-slide="84">02/07/2027</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>SEQ-104</td>
+            <td class="fabrication-clickable" data-slide="15">09/18/2026</td>
+            <td class="erection-clickable" data-slide="89">02/21/2027</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>SEQ-105</td>
+            <td class="fabrication-clickable" data-slide="19">09/26/2026</td>
+            <td class="erection-clickable" data-slide="96">03/07/2027</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>SEQ-106</td>
+            <td class="fabrication-clickable" data-slide="28">10/11/2026</td>
+            <td class="erection-clickable" data-slide="102">03/22/2027</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>SEQ-201</td>
+            <td class="fabrication-clickable" data-slide="34">10/20/2026</td>
+            <td class="erection-clickable" data-slide="74">01/10/2027</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>SEQ-202</td>
+            <td class="fabrication-clickable" data-slide="39">10/29/2026</td>
+            <td class="erection-clickable" data-slide="79">01/24/2027</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>SEQ-203</td>
+            <td class="fabrication-clickable" data-slide="39">11/07/2026</td>
+            <td class="erection-clickable" data-slide="84">02/07/2027</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>SEQ-204</td>
+            <td class="fabrication-clickable" data-slide="44">11/16/2026</td>
+            <td class="erection-clickable" data-slide="89">02/21/2027</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>SEQ-205</td>
+            <td class="fabrication-clickable" data-slide="51">11/27/2026</td>
+            <td class="erection-clickable" data-slide="96">03/07/2027</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>SEQ-206</td>
+            <td class="fabrication-clickable" data-slide="56">11/30/2026</td>
+            <td class="erection-clickable" data-slide="102">03/22/2027</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>Stair & Misc</td>
+            <td class="fabrication-clickable" data-slide="60">12/04/2026</td>
+            <td class="erection-clickable" data-slide="112">04/06/2027</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="search-bar">
+    <input type="text" placeholder="Search projects...">
+  </div>
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const range = document.querySelector('.slider-range');
+    const prevBtn = document.querySelector('.prev');
+    const nextBtn = document.querySelector('.next');
+    const playBtn = document.querySelector('.play');
+    const tableRows = document.querySelectorAll('tbody tr');
+    const slideFabrication = document.querySelector('#slide-fabrication');
+    const slideErection = document.querySelector('#slide-erection');
+    const sliderCurrentDate = document.querySelector('#slider-current-date');
+    const tickDates = document.querySelectorAll('.slider-ticks span');
+    let currentSlide = 0;
+    let playInterval = null;
+
+    const slideData = [
+      { date: '3/26/2026', fabrication: 'Anchor Bolts 1 Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '3/27/2026', fabrication: 'Columns Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '3/28/2026', fabrication: 'Braces Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '3/29/2026', fabrication: 'Beams (Level 1) Fabrication Started', erection: 'Erection Yet to Start' },
+      { date: '3/30/2026', fabrication: 'Beams (Level 1) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '3/31/2026', fabrication: 'Beams (Level 2) Fabrication Started', erection: 'Erection Yet to Start' },
+      { date: '4/1/2026', fabrication: 'Beams (Level 2) Fabrication In Progress', erection: 'Anchor Bolts 1 Erection Complete' },
+      { date: '4/2/2026', fabrication: 'Beams (Level 2) Fabrication Complete', erection: 'Columns Erection Complete' },
+      { date: '4/3/2026', fabrication: 'Misc Items Fabrication Complete', erection: 'Braces Erection Complete' },
+      { date: '4/7/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Erection In Progress' },
+      { date: '4/8/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Level 1) Erection Complete' },
+      { date: '4/9/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Erection In Progress' },
+      { date: '4/10/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Level 2) Erection Complete' },
+      { date: '4/11/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Erection In Progress' },
+      { date: '4/12/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Misc Items Erection Complete' },
+      { date: '4/14/2026', fabrication: 'Anchor Bolts 2 Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/15/2026', fabrication: 'Columns Fabrication Started', erection: 'Erection Yet to Start' },
+      { date: '4/16/2026', fabrication: 'Columns Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/17/2026', fabrication: 'Braces, Beams (Area A) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/18/2026', fabrication: 'Beams (Area B) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/19/2026', fabrication: 'Beams (Area C) Fabrication Complete', erection: 'Anchor Bolts 2 Erection Complete' },
+      { date: '4/20/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Columns Erection Complete' },
+      { date: '4/21/2026', fabrication: 'Misc Items Fabrication Complete', erection: 'Erection In Progress' },
+      { date: '4/22/2026', fabrication: 'Roof Frames Fabrication Complete', erection: 'Braces Erection Complete' },
+      { date: '4/23/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Area A) Erection Complete' },
+      { date: '4/24/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Area B) Erection Complete' },
+      { date: '4/25/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Area C) Erection Complete' },
+      { date: '4/26/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Misc Items, Roof Frames Erection Complete' },
+      { date: '4/27/2026', fabrication: 'Anchor Bolts 3, Columns (Area A) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/28/2026', fabrication: 'Columns (Area B), Braces, Beams (Area A) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/29/2026', fabrication: 'Beams (Area B) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '4/30/2026', fabrication: 'Beams (Area C) Fabrication Complete', erection: 'Erection Yet to Start' },
+      { date: '5/1/2026', fabrication: 'Beams (Revised) Fabrication Complete', erection: 'Anchor Bolts 3 Erection Complete' },
+      { date: '5/2/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Columns (Area A), Columns (Area B) Erection Complete' },
+      { date: '5/3/2026', fabrication: 'Misc Items Fabrication Complete', erection: 'Braces, Beams (Area A) Erection Complete' },
+      { date: '5/4/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Area B) Erection Complete' },
+      { date: '5/5/2026', fabrication: 'Channel Frames Fabrication Complete', erection: 'Beams (Area C) Erection Complete' },
+      { date: '5/6/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Beams (Revised) Erection Complete' },
+      { date: '5/9/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Channel Frames Erection Complete' },
+      { date: '5/10/2026', fabrication: 'Shop Ready for Fabrication', erection: 'Misc Items Erection Complete' }
+    ];
+
+    function showSlide(index, clickedRowIndex = null) {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+      });
+      range.value = index;
+      currentSlide = index;
+
+      tableRows.forEach((row) => {
+        row.classList.remove('highlighted');
+      });
+      if (clickedRowIndex !== null && clickedRowIndex < tableRows.length) {
+        tableRows[clickedRowIndex].classList.add('highlighted');
+      } else {
+        const slideDateObj = new Date(slideData[Math.min(index, slideData.length - 1)].date);
+        let highlightIndex = 0;
+        tableRows.forEach((row, i) => {
+          const fabDateStr = row.cells[2].textContent;
+          const fabDateParts = fabDateStr.split('/');
+          const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
+          if (slideDateObj >= fabDate) {
+            highlightIndex = i;
+          }
+        });
+        tableRows[highlightIndex].classList.add('highlighted');
+      }
+
+      const data = slideData[Math.min(index, slideData.length - 1)];
+      sliderCurrentDate.textContent = data.date;
+      slideFabrication.textContent = data.fabrication;
+      slideErection.textContent = data.erection;
+
+      tableRows.forEach((row) => {
+        row.cells[2].classList.remove('completed');
+        row.cells[3].classList.remove('erection-completed');
+      });
+
+      const slideDateObj = new Date(data.date);
+      tableRows.forEach((row) => {
+        const fabCell = row.cells[2];
+        const erectionCell = row.cells[3];
+        const fabDateStr = fabCell.textContent;
+        const erectionDateStr = erectionCell.textContent;
+
+        const fabDateParts = fabDateStr.split('/');
+        const erectionDateParts = erectionDateStr.split('/');
+        const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
+        const erectionDate = new Date(`${erectionDateParts[0]}/${erectionDateParts[1]}/${erectionDateParts[2]}`);
+
+        if (slideDateObj >= fabDate) {
+          fabCell.classList.add('completed');
+        }
+        if (slideDateObj >= erectionDate) {
+          erectionCell.classList.add('completed');
+        }
+      });
+    }
+
+    function togglePlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = '▶';
+      } else {
+        playInterval = setInterval(() => {
+          if (currentSlide < slides.length - 1) {
+            showSlide(currentSlide + 1);
+          } else {
+            clearInterval(playInterval);
+            playInterval = null;
+            playBtn.textContent = '▶';
+          }
+        }, 1000);
+        playBtn.textContent = '❚❚';
+      }
+    }
+
+    function stopPlay() {
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = '▶';
+      }
+    }
+
+    tableRows.forEach((row, rowIndex) => {
+      const fabCell = row.cells[2];
+      const erectionCell = row.cells[3];
+      
+      fabCell.addEventListener('click', () => {
+        stopPlay();
+        const slideIndex = parseInt(fabCell.dataset.slide);
+        showSlide(slideIndex);
+      });
+
+      erectionCell.addEventListener('click', () => {
+        stopPlay();
+        const slideIndex = parseInt(erectionCell.dataset.slide);
+        showSlide(slideIndex);
+      });
+    });
+
+    range.addEventListener('input', () => {
+      stopPlay();
+      showSlide(parseInt(range.value));
+    });
+
+    prevBtn.addEventListener('click', () => {
+      stopPlay();
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      stopPlay();
+      if (currentSlide < slides.length - 1) showSlide(currentSlide + 1);
+    });
+
+    playBtn.addEventListener('click', togglePlay);
+
+    tickDates.forEach((tick) => {
+      tick.addEventListener('click', () => {
+        stopPlay();
+        const dateStr = tick.dataset.date;
+        const slideIndex = slideData.findIndex(slide => slide.date === dateStr);
+        if (slideIndex !== -1) {
+          showSlide(slideIndex);
+        }
+      });
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>
