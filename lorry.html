@@ -165,20 +165,15 @@
       align-items: center;
     }
     .slider-current-date {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       font-weight: 500;
-      color: #28a745;
-      background: rgba(40, 167, 69, 0.1);
-      padding: 8px 16px;
-      border-radius: 12px;
-      margin: 12px 0;
+      color: #222;
+      background: #ffffff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin: 10px 0;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
-      border: 1px solid #28a745;
-      transition: transform 0.2s ease;
-    }
-    .slider-current-date:hover {
-      transform: scale(1.02);
+      border: 1px solid #ddd;
     }
     .slider-prompt {
       font-size: 0.9rem;
@@ -355,16 +350,6 @@
     }
     tr.highlighted {
       background: rgba(0, 123, 255, 0.25);
-    }
-    td.completed {
-      background: #28a745;
-      color: #ffffff;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-    td.erection-completed {
-      background: #40c4ff;
-      color: #ffffff;
-      transition: background 0.2s ease, color 0.2s ease;
     }
     td.fabrication-clickable, td.erection-clickable {
       cursor: pointer;
@@ -572,10 +557,22 @@
       </table>
     </div>
   </div>
-  <div class="search-bar">
-    <input type="text" placeholder="Search projects...">
+  <!-- Search bar removed -->
+  <div class="bottom-timeline">
+    <div id="timeline-scale" class="timeline-scale"></div>
+    <div id="timeline-dates" class="timeline-dates"></div>
   </div>
   <script>
+    /* Timeline styles injected */
+    const timelineStyle = document.createElement('style');
+    timelineStyle.textContent = `
+      .bottom-timeline { width: 90%; max-width:1200px; margin: 10px auto 30px; }
+      .timeline-scale { display:flex; height:4px; background:#e0e0e0; border-radius:2px; overflow:hidden; }
+      .scale-segment { flex:1; border-right:1px solid #bdbdbd; }
+      .scale-segment:last-child { border-right:none; }
+      .timeline-dates { display:flex; justify-content:space-between; font-size:0.7rem; margin-top:6px; color:#555; }
+    `;
+    document.head.appendChild(timelineStyle);
     const slides = document.querySelectorAll('.slide');
     const range = document.querySelector('.slider-range');
     const prevBtn = document.querySelector('.prev');
@@ -588,6 +585,7 @@
     const tickDates = document.querySelectorAll('.slider-ticks span');
     let currentSlide = 0;
     let playInterval = null;
+    let lastClickedRowIndex = null;
 
     const slideData = [
       { date: '01/29/2025', fabrication: 'PHASE-1 Fabrication Started', erection: 'Erection Yet to Start' },
@@ -631,75 +629,19 @@
       { date: '03/08/2025', fabrication: 'PHASE-7 Fabrication Started', erection: 'Erection Yet to Start' }
     ];
 
-    function showSlide(index, clickedRowIndex = null) {
+    function showSlide(index) {
       slides.forEach((slide, i) => {
         slide.classList.toggle('active', i === index);
       });
       range.value = index;
       currentSlide = index;
-
-      tableRows.forEach((row) => {
-        row.classList.remove('highlighted');
+      tableRows.forEach((row, i) => {
+        row.classList.toggle('highlighted', i === lastClickedRowIndex);
       });
-      if (clickedRowIndex !== null && clickedRowIndex < tableRows.length) {
-        tableRows[clickedRowIndex].classList.add('highlighted');
-      } else {
-        const slideDateObj = new Date(slideData[index].date);
-        let highlightIndex = 0;
-        tableRows.forEach((row, i) => {
-          const fabDateStr = row.cells[2].textContent;
-          const fabDateParts = fabDateStr.split('/');
-          const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
-          if (slideDateObj >= fabDate) {
-            highlightIndex = i;
-          }
-        });
-        tableRows[highlightIndex].classList.add('highlighted');
-      }
-
-      const data = slideData[index];
+      const data = slideData[Math.min(index, slideData.length - 1)];
       sliderCurrentDate.textContent = data.date;
       slideFabrication.textContent = data.fabrication;
       slideErection.textContent = data.erection;
-
-      tableRows.forEach((row) => {
-        row.cells[2].classList.remove('completed');
-        row.cells[3].classList.remove('erection-completed');
-      });
-
-      const slideDateObj = new Date(data.date);
-      tableRows.forEach((row) => {
-        const fabCell = row.cells[2];
-        const erectionCell = row.cells[3];
-        const fabDateStr = fabCell.textContent;
-        const erectionDateStr = erectionCell.textContent;
-
-        const fabDateParts = fabDateStr.split('/');
-        const erectionDateParts = erectionDateStr.split('/');
-        const fabDate = new Date(`${fabDateParts[0]}/${fabDateParts[1]}/${fabDateParts[2]}`);
-        const erectionDate = new Date(`${erectionDateParts[0]}/${erectionDateParts[1]}/${erectionDateParts[2]}`);
-
-        if (slideDateObj >= fabDate) {
-          fabCell.classList.add('completed');
-        }
-        if (slideDateObj >= erectionDate) {
-          erectionCell.classList.add('completed');
-        }
-      });
-    }
-
-    function findClosestSlide(targetDateStr) {
-      const [day, month, year] = targetDateStr.split('/');
-      const formattedDate = `${month}/${day}/${year}`;
-      const targetDate = new Date(formattedDate);
-
-      for (let i = 0; i < slideData.length; i++) {
-        const slideDate = new Date(slideData[i].date);
-        if (slideDate >= targetDate) {
-          return i;
-        }
-      }
-      return slideData.length - 1;
     }
 
     function togglePlay() {
@@ -732,27 +674,15 @@
     tableRows.forEach((row, rowIndex) => {
       const fabCell = row.cells[2];
       const erectionCell = row.cells[3];
-      
       fabCell.addEventListener('click', () => {
         stopPlay();
-        if (fabCell.dataset.slide !== undefined) {
-          showSlide(parseInt(fabCell.dataset.slide));
-        } else {
-          const fabDateStr = fabCell.textContent;
-          const slideIndex = findClosestSlide(fabDateStr);
-          showSlide(slideIndex, rowIndex);
-        }
+        lastClickedRowIndex = rowIndex;
+        showSlide(parseInt(fabCell.dataset.slide));
       });
-
       erectionCell.addEventListener('click', () => {
         stopPlay();
-        if (erectionCell.dataset.slide !== undefined) {
-          showSlide(parseInt(erectionCell.dataset.slide));
-        } else {
-          const erectionDateStr = erectionCell.textContent;
-          const slideIndex = findClosestSlide(erectionDateStr);
-          showSlide(slideIndex, rowIndex);
-        }
+        lastClickedRowIndex = rowIndex;
+        showSlide(parseInt(erectionCell.dataset.slide));
       });
     });
 
@@ -779,10 +709,39 @@
         const dateStr = tick.dataset.date;
         const slideIndex = slideData.findIndex(slide => slide.date === dateStr);
         if (slideIndex !== -1) {
+          lastClickedRowIndex = null;
           showSlide(slideIndex);
         }
       });
     });
+
+    function buildTimelineFromEvents() {
+      const scaleEl = document.getElementById('timeline-scale');
+      const datesEl = document.getElementById('timeline-dates');
+      if (!scaleEl || !datesEl) return;
+      scaleEl.innerHTML = '';
+      datesEl.innerHTML = '';
+      const timelineConfigs = {
+        'BSGS': ["Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026","Jun 2026","Jul 2026","Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"],
+        'CUP': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027"],
+        'LORRY': ["Jan 2027","Feb 2027","Mar 2027","Apr 2027","May 2027","Jun 2027"],
+        'WRC': ["Sep 2025","Nov 2025","Mar 2026","Apr 2026","Jun 2026","Jul 2026"],
+        '1': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"]
+      };
+      const projectName = document.querySelector('h2')?.textContent.trim();
+      const keyMap = { 'Waste Management':'1','CUP':'CUP','BSGS':'BSGS','LORRY':'LORRY','WRC':'WRC' };
+      const cfgKey = keyMap[projectName] || '1';
+      const months = timelineConfigs[cfgKey] || [];
+      months.forEach((m) => {
+        const seg = document.createElement('div');
+        seg.className = 'scale-segment';
+        scaleEl.appendChild(seg);
+        const lab = document.createElement('div');
+        lab.textContent = m;
+        datesEl.appendChild(lab);
+      });
+    }
+    buildTimelineFromEvents();
 
     showSlide(0);
   </script>
