@@ -485,13 +485,7 @@
           <button class="next">❯</button>
         </div>
       </div>
-      <div class="slider-ticks">
-        <span data-date="01/29/2025">01/29/2025</span>
-        <span data-date="02/09/2025">02/09/2025</span>
-        <span data-date="02/14/2025">02/14/2025</span>
-        <span data-date="02/19/2025">02/19/2025</span>
-        <span data-date="02/22/2025">02/22/2025</span>
-      </div>
+      <div class="slider-ticks"></div>
       <div class="slider-current-date">Date: <span id="slider-current-date">01/29/2025</span></div>
       <p class="slider-prompt">Slide left to see progress</p>
       <div class="status-text-box">
@@ -558,21 +552,9 @@
     </div>
   </div>
   <!-- Search bar removed -->
-  <div class="bottom-timeline">
-    <div id="timeline-scale" class="timeline-scale"></div>
-    <div id="timeline-dates" class="timeline-dates"></div>
-  </div>
+  <!-- Removed bottom timeline -->
   <script>
-    /* Timeline styles injected */
-    const timelineStyle = document.createElement('style');
-    timelineStyle.textContent = `
-      .bottom-timeline { width: 90%; max-width:1200px; margin: 10px auto 30px; }
-      .timeline-scale { display:flex; height:4px; background:#e0e0e0; border-radius:2px; overflow:hidden; }
-      .scale-segment { flex:1; border-right:1px solid #bdbdbd; }
-      .scale-segment:last-child { border-right:none; }
-      .timeline-dates { display:flex; justify-content:space-between; font-size:0.7rem; margin-top:6px; color:#555; }
-    `;
-    document.head.appendChild(timelineStyle);
+    /* Replace date ticks with month timeline */
     const slides = document.querySelectorAll('.slide');
     const range = document.querySelector('.slider-range');
     const prevBtn = document.querySelector('.prev');
@@ -582,7 +564,7 @@
     const slideFabrication = document.querySelector('#slide-fabrication');
     const slideErection = document.querySelector('#slide-erection');
     const sliderCurrentDate = document.querySelector('#slider-current-date');
-    const tickDates = document.querySelectorAll('.slider-ticks span');
+    const ticksContainer = document.querySelector('.slider-ticks');
     let currentSlide = 0;
     let playInterval = null;
     let lastClickedRowIndex = null;
@@ -703,24 +685,9 @@
 
     playBtn.addEventListener('click', togglePlay);
 
-    tickDates.forEach((tick) => {
-      tick.addEventListener('click', () => {
-        stopPlay();
-        const dateStr = tick.dataset.date;
-        const slideIndex = slideData.findIndex(slide => slide.date === dateStr);
-        if (slideIndex !== -1) {
-          lastClickedRowIndex = null;
-          showSlide(slideIndex);
-        }
-      });
-    });
+    // Months are non-interactive now
 
-    function buildTimelineFromEvents() {
-      const scaleEl = document.getElementById('timeline-scale');
-      const datesEl = document.getElementById('timeline-dates');
-      if (!scaleEl || !datesEl) return;
-      scaleEl.innerHTML = '';
-      datesEl.innerHTML = '';
+    function buildMonthTicks() {
       const timelineConfigs = {
         'BSGS': ["Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026","Jun 2026","Jul 2026","Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"],
         'CUP': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027"],
@@ -728,20 +695,18 @@
         'WRC': ["Sep 2025","Nov 2025","Mar 2026","Apr 2026","Jun 2026","Jul 2026"],
         '1': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"]
       };
+      ticksContainer.innerHTML = '';
       const projectName = document.querySelector('h2')?.textContent.trim();
       const keyMap = { 'Waste Management':'1','CUP':'CUP','BSGS':'BSGS','LORRY':'LORRY','WRC':'WRC' };
       const cfgKey = keyMap[projectName] || '1';
-      const months = timelineConfigs[cfgKey] || [];
-      months.forEach((m) => {
-        const seg = document.createElement('div');
-        seg.className = 'scale-segment';
-        scaleEl.appendChild(seg);
-        const lab = document.createElement('div');
-        lab.textContent = m;
-        datesEl.appendChild(lab);
+      (timelineConfigs[cfgKey] || []).forEach(m => {
+        const span = document.createElement('span');
+        span.textContent = m;
+        span.style.cursor = 'default';
+        ticksContainer.appendChild(span);
       });
     }
-    buildTimelineFromEvents();
+    buildMonthTicks();
 
     showSlide(0);
   </script>

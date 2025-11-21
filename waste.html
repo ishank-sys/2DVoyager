@@ -44,6 +44,7 @@
       color: #333;
       background: linear-gradient(90deg, #007bff, #28a745);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       padding: 8px 16px;
       border-radius: 16px;
@@ -60,6 +61,7 @@
       font-weight: 600;
       background: linear-gradient(90deg, #007bff, #28a745);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: fadeIn 0.8s ease-in;
     }
@@ -234,6 +236,7 @@
     }
     .slider-range {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       height: 5px;
       background: repeating-linear-gradient(
@@ -477,21 +480,11 @@
         <div class="slider-bar">
           <button class="play">▶</button>
           <button class="prev">❮</button>
-          <input type="range" min="0" max="32" value="0" class="slider-range">
+          <input type="range" min="0" max="33" value="0" class="slider-range">
           <button class="next">❯</button>
         </div>
       </div>
-      <div class="slider-ticks">
-        <span data-date="9/30/2025">9/30/2025</span>
-        <span data-date="11/19/2025">11/19/2025</span>
-        <span data-date="4/6/2026">4/6/2026</span>
-        <span data-date="6/3/2026">6/3/2026</span>
-        <span data-date="5/26/2026">5/26/2026</span>
-        <span data-date="4/8/2026">4/8/2026</span>
-        <span data-date="5/15/2026">5/15/2026</span>
-        <span data-date="6/20/2026">6/20/2026</span>
-        <span data-date="7/1/2026">7/1/2026</span>
-      </div>
+      <div class="slider-ticks"></div>
       <div class="slider-current-date">Date: <span id="slider-current-date">9/30/2025</span></div>
       <p class="slider-prompt">Slide left to see progress</p>
       <div class="status-text-box">
@@ -570,21 +563,29 @@
     </div>
   </div>
   <!-- Search bar removed -->
-  <div class="bottom-timeline">
-    <div id="timeline-scale" class="timeline-scale"></div>
-    <div id="timeline-dates" class="timeline-dates"></div>
-  </div>
   <script>
-    /* Timeline styles injected */
-    const timelineStyle = document.createElement('style');
-    timelineStyle.textContent = `
-      .bottom-timeline { width: 90%; max-width:1200px; margin: 10px auto 30px; }
-      .timeline-scale { display:flex; height:4px; background:#e0e0e0; border-radius:2px; overflow:hidden; }
-      .scale-segment { flex:1; border-right:1px solid #bdbdbd; }
-      .scale-segment:last-child { border-right:none; }
-      .timeline-dates { display:flex; justify-content:space-between; font-size:0.7rem; margin-top:6px; color:#555; }
-    `;
-    document.head.appendChild(timelineStyle);
+    // Month tick builder (replaces old bottom timeline & date ticks)
+    function buildMonthTicks() {
+      const ticksContainer = document.querySelector('.slider-ticks');
+      if (!ticksContainer) return;
+      const timelineConfigs = {
+        'BSGS': ["Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026","Jun 2026","Jul 2026","Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"],
+        'CUP': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027"],
+        'LORRY': ["Jan 2027","Feb 2027","Mar 2027","Apr 2027","May 2027","Jun 2027"],
+        'WRC': ["Sep 2025","Nov 2025","Mar 2026","Apr 2026","Jun 2026","Jul 2026"],
+        '1': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"]
+      };
+      ticksContainer.innerHTML = '';
+      const projectName = document.querySelector('h2')?.textContent.trim();
+      const keyMap = { 'Waste Management':'1','CUP':'CUP','BSGS':'BSGS','LORRY':'LORRY','WRC':'WRC' };
+      const cfgKey = keyMap[projectName] || '1';
+      (timelineConfigs[cfgKey] || []).forEach(m => {
+        const span = document.createElement('span');
+        span.textContent = m;
+        span.style.cursor = 'default';
+        ticksContainer.appendChild(span);
+      });
+    }
     const slides = document.querySelectorAll('.slide');
     const range = document.querySelector('.slider-range');
     const prevBtn = document.querySelector('.prev');
@@ -594,7 +595,8 @@
     const slideFabrication = document.querySelector('#slide-fabrication');
     const slideErection = document.querySelector('#slide-erection');
     const sliderCurrentDate = document.querySelector('#slider-current-date');
-    const tickDates = document.querySelectorAll('.slider-ticks span');
+    // Build month ticks now
+    buildMonthTicks();
     let currentSlide = 0;
     let playInterval = null;
     let lastClickedRowIndex = null;
@@ -709,45 +711,7 @@
 
     playBtn.addEventListener('click', togglePlay);
 
-    tickDates.forEach((tick) => {
-      tick.addEventListener('click', () => {
-        stopPlay();
-        const dateStr = tick.dataset.date;
-        const slideIndex = slideData.findIndex(slide => slide.date === dateStr);
-        if (slideIndex !== -1) {
-          lastClickedRowIndex = null;
-          showSlide(slideIndex);
-        }
-      });
-    });
-
-    function buildTimelineFromEvents() {
-      const scaleEl = document.getElementById('timeline-scale');
-      const datesEl = document.getElementById('timeline-dates');
-      if (!scaleEl || !datesEl) return;
-      scaleEl.innerHTML = '';
-      datesEl.innerHTML = '';
-      const timelineConfigs = {
-        'BSGS': ["Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026","Jun 2026","Jul 2026","Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"],
-        'CUP': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027"],
-        'LORRY': ["Jan 2027","Feb 2027","Mar 2027","Apr 2027","May 2027","Jun 2027"],
-        'WRC': ["Sep 2025","Nov 2025","Mar 2026","Apr 2026","Jun 2026","Jul 2026"],
-        '1': ["Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027"]
-      };
-      const projectName = document.querySelector('h2')?.textContent.trim();
-      const keyMap = { 'Waste Management':'1','CUP':'CUP','BSGS':'BSGS','LORRY':'LORRY','WRC':'WRC' };
-      const cfgKey = keyMap[projectName] || '1';
-      const months = timelineConfigs[cfgKey] || [];
-      months.forEach((m) => {
-        const seg = document.createElement('div');
-        seg.className = 'scale-segment';
-        scaleEl.appendChild(seg);
-        const lab = document.createElement('div');
-        lab.textContent = m;
-        datesEl.appendChild(lab);
-      });
-    }
-    buildTimelineFromEvents();
+    // Removed old bottom timeline + tick date click handlers
 
     showSlide(0);
   </script>
