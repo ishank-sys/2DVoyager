@@ -592,6 +592,15 @@
     let currentSlide = 0;
     let playInterval = null;
     let lastClickedRowIndex = null;
+    // Extract milestone slides for dynamic status
+    const fabricationMilestones = [...document.querySelectorAll('td.fabrication-clickable')].map(cell => ({
+      slide: parseInt(cell.dataset.slide),
+      name: cell.parentElement.children[1].textContent.trim()
+    }));
+    const erectionMilestones = [...document.querySelectorAll('td.erection-clickable')].map(cell => ({
+      slide: parseInt(cell.dataset.slide),
+      name: cell.parentElement.children[1].textContent.trim()
+    }));
 
     const slideData = [
       { date: '01/29/2025', fabrication: 'PHASE-1 Fabrication Started', erection: 'Erection Yet to Start' },
@@ -636,17 +645,22 @@
     ];
 
     function showSlide(index) {
-      slides.forEach((slide, i) => {
-        slide.classList.toggle('active', i === index);
-      });
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
       range.value = index;
       currentSlide = index;
-      tableRows.forEach((row, i) => {
-        row.classList.toggle('highlighted', i === lastClickedRowIndex);
-      });
-      const data = slideData[Math.min(index, slideData.length - 1)];
-      slideFabrication.textContent = data.fabrication;
-      slideErection.textContent = data.erection;
+      tableRows.forEach((row, i) => row.classList.toggle('highlighted', i === lastClickedRowIndex));
+      const completedFab = fabricationMilestones.filter(m => m.slide <= index);
+      let fabricationStatus;
+      if (completedFab.length === 0) fabricationStatus = 'Fabrication Yet to Start';
+      else if (completedFab.length < fabricationMilestones.length) fabricationStatus = 'Fabrication In Progress: Completed ' + completedFab.map(m => m.name).join(', ');
+      else fabricationStatus = 'All Fabrication Complete';
+      const completedErect = erectionMilestones.filter(m => m.slide <= index);
+      let erectionStatus;
+      if (completedErect.length === 0) erectionStatus = 'Erection Yet to Start';
+      else if (completedErect.length < erectionMilestones.length) erectionStatus = 'Erection In Progress: Completed ' + completedErect.map(m => m.name).join(', ');
+      else erectionStatus = 'All Erection Complete';
+      slideFabrication.textContent = fabricationStatus;
+      slideErection.textContent = erectionStatus;
     }
 
     function togglePlay() {
