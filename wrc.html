@@ -24,14 +24,54 @@
       width: 100%;
       background: rgba(0, 0, 0, 0.06);
       backdrop-filter: blur(8px);
-      padding: 12px 0;
+      padding: 8px 20px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: center;
       position: sticky;
       top: 0;
       z-index: 100;
     }
+    .menu-bar .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .menu-bar .nav-left h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e2a38;
+      margin: 0;
+    }
+    .menu-bar .nav-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      pointer-events: none;
+    }
+    .nav-center .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #1e2730;
+      pointer-events: auto;
+    }
+    .nav-center .legend-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      flex: 0 0 14px;
+    }
+    .legend-fab-start { background: #f8c1c1; }
+    .legend-fab-end   { background: #c62828; }
+    .legend-erect-start { background: #b7f0c6; }
+    .legend-erect-end   { background: #2e7d32; }
     .menu-bar ul {
       list-style: none;
       display: flex;
@@ -155,7 +195,7 @@
       margin-bottom: 32px;
     }
     .slider-container {
-      width: 1200px;
+      width: 1560px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -170,7 +210,7 @@
     }
     .slider {
       width: 100%;
-      height: 540px;
+      height: 702px;
       position: relative;
       border-radius: 12px;
       overflow: hidden;
@@ -392,6 +432,21 @@
 </head>
 <body>
   <nav class="menu-bar">
+    <div class="nav-left">
+      <a href="index.html" class="home-button" title="Home">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M3 12L12 3L21 12V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V12Z" />
+          <path d="M9 22V15H15V22" />
+        </svg>
+      </a>
+      <h1>Project Status Visualization</h1>
+    </div>
+    <div class="nav-center" aria-hidden="false">
+      <div class="legend-item"><div class="legend-box legend-fab-start"></div><span>Fabrication started</span></div>
+      <div class="legend-item"><div class="legend-box legend-fab-end"></div><span>Fabrication ended</span></div>
+      <div class="legend-item"><div class="legend-box legend-erect-start"></div><span>Erection started</span></div>
+      <div class="legend-item"><div class="legend-box legend-erect-end"></div><span>Erection ended</span></div>
+    </div>
     <ul>
       <li><a href="lorry.html">LORRY</a></li>
       <li><a href="waste.html">Waste Management</a></li>
@@ -399,28 +454,11 @@
       <li><a href="cup.html">CUP</a></li>
     </ul>
   </nav>
-  <div class="header-container">
+    <div class="header-container">
     <div class="title-container">
-      <h1>Project Status Visualization</h1>
-      <a href="index.html" class="home-button">
-        <svg viewBox="0 0 24 24">
-          <defs>
-            <linearGradient id="home-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#00d4ff;" />
-              <stop offset="100%" style="stop-color:#00ffaa;" />
-            </linearGradient>
-          </defs>
-          <path d="M3 12L12 3L21 12V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V12Z" />
-          <path d="M9 22V15H15V22" />
-        </svg>
-      </a>
+      <!-- title moved into nav bar -->
     </div>
-    <div class="legend">
-      <div>
-        <div class="legend-box completed"></div>
-        <span>Completed</span>
-      </div>
-    </div>
+    <!-- legend moved into navbar -->
   </div>
   <div class="main-container">
     <div class="slider-container">
